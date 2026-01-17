@@ -1,0 +1,54 @@
+# --- Global ---
+.DS_Store
+Thumbs.db
+*.log
+crash.log
+
+# --- IDE & Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- AILrc (Renderer - Go/Wails) ---
+# Build artifacts
+AILrc/build/bin/
+AILrc/build/windows/installer/
+AILrc/build/windows/wails.exe
+
+# Frontend artifacts
+AILrc/frontend/dist/
+AILrc/frontend/node_modules/
+AILrc/frontend/.vite/
+
+# Wails generated bindings (Optional: keep if you want types without building)
+# AILrc/wailsjs/
+
+# --- AIMP Plugin (Delphi) ---
+# Delphi history and recovery
+aimp_plugin/__history/
+aimp_plugin/__recovery/
+
+# Output directories (Avoid committing binaries)
+aimp_plugin/Win32/
+aimp_plugin/Win64/
+
+# Delphi build files
+*.dcu
+*.rsm
+*.identcache
+*.local
+*.stat
+*.tvsconfig
+*.dsk
+
+# --- Binaries & Packages ---
+# Ignore all executables and dlls to prevent repo bloat
+*.exe
+*.dll
+*.so
+*.dylib
+
+# AIMP Package
+*.aimppack
+*.zip

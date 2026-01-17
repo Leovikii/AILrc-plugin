@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "AILrc",
+  "outputfilename": "AILrc",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Viki",
+    "email": "94736133+Leovikii@users.noreply.github.com"
+  },
+    "info": {
+    "productName": "AILrc",
+    "companyName": "AILrc Inc.",
+    "productVersion": "2.0.0",
+    "fileVersion": "2.0.0"
+  }
+}
