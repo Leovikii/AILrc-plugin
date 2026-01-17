@@ -4,26 +4,35 @@ interface
 
 uses
   Windows, SysUtils, Classes, ShellAPI, Messages, System.JSON,
-  apiPlugin, apiCore, apiMessages, apiPlayer, apiFileManager, apiObjects, apiTypes;
+  apiPlugin, apiCore, apiMessages, apiPlayer, apiFileManager, apiObjects, apiTypes,
+  apiMenu, apiActions;
 
 const
   TARGET_WINDOW_TITLE = 'AILrc';
   COPYDATA_ID_AILRC = 19941012;
 
 type
-  TAIMPLifecyclePlugin = class(TInterfacedObject, IAIMPPlugin, IAIMPMessageHook)
+  TMenuStateUpdater = class(TInterfacedObject, IAIMPActionEvent)
+  public
+    procedure OnExecute(Data: IUnknown); stdcall;
+  end;
+
+  TAIMPLifecyclePlugin = class(TInterfacedObject, IAIMPPlugin, IAIMPMessageHook, IAIMPActionEvent)
   private
     FCore: IAIMPCore;
     FMessageDispatcher: IAIMPServiceMessageDispatcher;
     FPlayer: IAIMPServicePlayer;
+    FMenuItem: IAIMPMenuItem;
 
     function GetAIMPString(AIMPStr: IAIMPString): string;
+    function MakeString(const S: string): IAIMPString;
     procedure SendJSON(JSON: TJSONObject);
     procedure SendTrackInfo;
     procedure SendState;
     procedure SendPosition;
     procedure LaunchApp;
     procedure CloseApp;
+    procedure UpdateMenuState;
   public
     function InfoGet(Index: Integer): PWideChar; stdcall;
     function InfoGetCategories: Cardinal; stdcall;
@@ -32,13 +41,28 @@ type
     procedure SystemNotification(NotifyID: Integer; Data: IUnknown); stdcall;
 
     procedure CoreMessage(Message: LongWord; Param1: Integer; Param2: Pointer; var Result: HRESULT); stdcall;
+    procedure OnExecute(Data: IUnknown); stdcall;
   end;
 
 implementation
 
+procedure TMenuStateUpdater.OnExecute(Data: IUnknown);
+var
+  MenuItem: IAIMPMenuItem;
+  Hwnd: THandle;
+begin
+  if Data.QueryInterface(IID_IAIMPMenuItem, MenuItem) <> S_OK then Exit;
+
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd <> 0 then
+    MenuItem.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, 1)
+  else
+    MenuItem.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, 0);
+end;
+
 function TAIMPLifecyclePlugin.InfoGetCategories: Cardinal;
 begin
-  Result := 2;
+  Result := AIMP_PLUGIN_CATEGORY_ADDONS;
 end;
 
 function TAIMPLifecyclePlugin.InfoGet(Index: Integer): PWideChar;
@@ -53,6 +77,9 @@ begin
 end;
 
 function TAIMPLifecyclePlugin.Initialize(Core: IAIMPCore): HRESULT;
+var
+  MenuManager: IAIMPServiceMenuManager;
+  ParentMenuItem: IAIMPMenuItem;
 begin
   FCore := Core;
 
@@ -65,12 +92,39 @@ begin
   if FMessageDispatcher.Hook(Self) <> S_OK then
     Exit(E_FAIL);
 
+  if FCore.CreateObject(IID_IAIMPMenuItem, FMenuItem) = S_OK then
+  begin
+    FMenuItem.SetValueAsObject(AIMP_MENUITEM_PROPID_ID, MakeString('aimp.leoviki.ailrc.toggle'));
+    FMenuItem.SetValueAsObject(AIMP_MENUITEM_PROPID_NAME, MakeString('Desktop Lyrics (AILrc)'));
+    FMenuItem.SetValueAsInt32(AIMP_MENUITEM_PROPID_STYLE, AIMP_MENUITEM_STYLE_CHECKBOX);
+    FMenuItem.SetValueAsObject(AIMP_MENUITEM_PROPID_EVENT, Self);
+    FMenuItem.SetValueAsObject(AIMP_MENUITEM_PROPID_EVENT_ONSHOW, TMenuStateUpdater.Create);
+
+    if FCore.QueryInterface(IID_IAIMPServiceMenuManager, MenuManager) = S_OK then
+    begin
+      if MenuManager.GetBuiltIn(AIMP_MENUID_PLAYER_MAIN_FUNCTIONS, ParentMenuItem) = S_OK then
+      begin
+        FMenuItem.SetValueAsObject(AIMP_MENUITEM_PROPID_PARENT, ParentMenuItem);
+      end;
+    end;
+
+    UpdateMenuState;
+    FCore.RegisterExtension(IID_IAIMPServiceMenuManager, FMenuItem);
+  end;
+
   LaunchApp;
+  UpdateMenuState;
   Result := S_OK;
 end;
 
 procedure TAIMPLifecyclePlugin.Finalize;
 begin
+  if Assigned(FMenuItem) then
+  begin
+    FCore.UnregisterExtension(FMenuItem);
+    FMenuItem := nil;
+  end;
+
   if Assigned(FMessageDispatcher) then
     FMessageDispatcher.Unhook(Self);
 
@@ -106,6 +160,36 @@ begin
           SendPosition;
       end;
   end;
+end;
+
+procedure TAIMPLifecyclePlugin.OnExecute(Data: IUnknown);
+var
+  Hwnd: THandle;
+begin
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd <> 0 then
+  begin
+    CloseApp;
+  end
+  else
+  begin
+    LaunchApp;
+  end;
+  Sleep(100);
+  UpdateMenuState;
+end;
+
+procedure TAIMPLifecyclePlugin.UpdateMenuState;
+var
+  Hwnd: THandle;
+begin
+  if FMenuItem = nil then Exit;
+
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd <> 0 then
+    FMenuItem.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, 1)
+  else
+    FMenuItem.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, 0);
 end;
 
 procedure TAIMPLifecyclePlugin.SendTrackInfo;
@@ -220,6 +304,12 @@ begin
   SetLength(Result, AIMPStr.GetLength);
   if Length(Result) > 0 then
     Move(AIMPStr.GetData^, Result[1], Length(Result) * SizeOf(Char));
+end;
+
+function TAIMPLifecyclePlugin.MakeString(const S: string): IAIMPString;
+begin
+  if FCore.CreateObject(IID_IAIMPString, Result) = S_OK then
+    Result.SetData(PChar(S), Length(S));
 end;
 
 procedure TAIMPLifecyclePlugin.LaunchApp;
