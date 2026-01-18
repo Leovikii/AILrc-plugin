@@ -56,18 +56,21 @@ func main() {
 		Width:         800,
 		Height:        120,
 		AlwaysOnTop:   true,
-		DisableResize: false,
+		DisableResize: true,
 		Frameless:     true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup:        app.startup,
+		OnBeforeClose:    app.beforeClose,
 		Bind: []interface{}{
 			app,
 		},
 		Windows: &windows.Options{
-			WindowIsTranslucent: true,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
+			BackdropType:         windows.None,
 		},
 	})
 

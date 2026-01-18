@@ -7,6 +7,9 @@ export namespace main {
 	    bgOpacity: number;
 	    textOpacity: number;
 	    windowWidth: number;
+	    windowX: number;
+	    windowY: number;
+	    windowPositionSaved: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -20,6 +23,9 @@ export namespace main {
 	        this.bgOpacity = source["bgOpacity"];
 	        this.textOpacity = source["textOpacity"];
 	        this.windowWidth = source["windowWidth"];
+	        this.windowX = source["windowX"];
+	        this.windowY = source["windowY"];
+	        this.windowPositionSaved = source["windowPositionSaved"];
 	    }
 	}
 	export class LyricLine {

@@ -34,6 +34,22 @@ func (a *App) startup(ctx context.Context) {
 	if config.WindowWidth > 0 {
 		runtime.WindowSetSize(ctx, config.WindowWidth, 120)
 	}
+
+	if config.WindowPositionSaved {
+		runtime.WindowSetPosition(ctx, config.WindowX, config.WindowY)
+	}
+}
+
+func (a *App) beforeClose(ctx context.Context) bool {
+	x, y := runtime.WindowGetPosition(ctx)
+
+	config := LoadAppConfig()
+	config.WindowX = x
+	config.WindowY = y
+	config.WindowPositionSaved = true
+	SaveAppConfig(config)
+
+	return false
 }
 
 func (a *App) FetchMusicInfo() MusicInfo {
