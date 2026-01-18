@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { SetWindowClickThrough, QuitApp, ResizeWindow } from "../wailsjs/go/main/App";
+import { EventsOn } from "../wailsjs/runtime/runtime";
 import { useAimp } from './hooks/useAimp';
 import { useLyrics } from './hooks/useLyrics';
 import { useConfig } from './hooks/useConfig';
@@ -11,7 +12,9 @@ function App() {
     const [isLocked, setIsLocked] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const { config, setConfig, save: saveConfig, isLoaded } = useConfig();
-    const { musicInfo, playerState, shouldUnlock } = useAimp(isLocked);
+    
+    const { musicInfo, playerState } = useAimp();
+    
     const { mainText, subText } = useLyrics(musicInfo?.FileName, playerState?.Position);
     
     const lyricRef = useRef<HTMLDivElement>(null);
@@ -22,11 +25,13 @@ function App() {
         if (!config.windowWidth) {
             setConfig({ ...config, windowWidth: window.innerWidth });
         }
-    }, []);
 
-    useEffect(() => {
-        if (shouldUnlock) setIsLocked(false);
-    }, [shouldUnlock]);
+        const cancel = EventsOn("lock_state_change", (locked: boolean) => {
+            setIsLocked(locked);
+        });
+
+        return () => cancel();
+    }, []);
 
     useEffect(() => {
         SetWindowClickThrough(isLocked);

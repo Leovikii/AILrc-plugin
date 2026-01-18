@@ -1,69 +1,57 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { FetchMusicInfo, FetchPlayerState } from "../../wailsjs/go/main/App";
-import { MusicInfo, PlayerState } from "../types";
 
-export function useAimp(isLocked: boolean) {
+interface MusicInfo {
+    FileName: string;
+    TrackNumber: number;
+}
+
+interface PlayerState {
+    Position: number;
+    State: number;
+}
+
+export function useAimp() {
     const [musicInfo, setMusicInfo] = useState<MusicInfo | null>(null);
     const [playerState, setPlayerState] = useState<PlayerState | null>(null);
-    const [smoothPosition, setSmoothPosition] = useState<number>(0);
-    const [shouldUnlock, setShouldUnlock] = useState(false);
-
-    const lastFetchTimeRef = useRef<number>(Date.now());
-    const basePositionRef = useRef<number>(0);
-    const isPlayingRef = useRef<boolean>(false);
-    const requestRef = useRef<number>();
-
-    const updateSmoothPosition = () => {
-        if (!isPlayingRef.current) {
-            setSmoothPosition(basePositionRef.current);
-        } else {
-            const now = Date.now();
-            const elapsed = now - lastFetchTimeRef.current;
-            setSmoothPosition(basePositionRef.current + elapsed);
-        }
-        requestRef.current = requestAnimationFrame(updateSmoothPosition);
-    };
 
     useEffect(() => {
-        requestRef.current = requestAnimationFrame(updateSmoothPosition);
+        FetchMusicInfo().then(setMusicInfo);
+        FetchPlayerState().then(setPlayerState);
+
+        const cancelTrack = EventsOn("track", () => {
+            FetchMusicInfo().then(setMusicInfo);
+            setPlayerState(prev => prev ? { ...prev, Position: 0 } : { Position: 0, State: 1 });
+        });
+
+        const cancelState = EventsOn("state", (data: any) => {
+            if (typeof data === 'object' && data.state !== undefined) {
+                setPlayerState(prev => prev ? { ...prev, State: data.state } : { Position: 0, State: data.state });
+            } else {
+                FetchPlayerState().then(setPlayerState);
+            }
+        });
+
+        const cancelPosition = EventsOn("position", (data: any) => {
+             if (typeof data === 'number') {
+                 const posMs = Math.floor(data * 1000);
+                 setPlayerState(prev => prev ? { ...prev, Position: posMs } : { Position: posMs, State: 1 });
+             } else if (data && data.position !== undefined) {
+                 const posMs = Math.floor(data.position * 1000);
+                 setPlayerState(prev => prev ? { ...prev, Position: posMs } : { Position: posMs, State: 1 });
+             }
+        });
+
         return () => {
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+            cancelTrack();
+            cancelState();
+            cancelPosition();
         };
     }, []);
 
-    useEffect(() => {
-        const fetchInterval = setInterval(() => {
-            FetchPlayerState().then(state => {
-                setPlayerState(state);
-                
-                basePositionRef.current = state.Position;
-                lastFetchTimeRef.current = Date.now();
-                isPlayingRef.current = state.State === 2;
-
-                if (state.State !== 2 && isLocked) {
-                    setShouldUnlock(true);
-                } else {
-                    setShouldUnlock(false);
-                }
-            });
-        }, 100); 
-
-        return () => clearInterval(fetchInterval);
-    }, [isLocked]);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            FetchMusicInfo().then(info => {
-                setMusicInfo(prev => {
-                    if (prev?.FileName !== info.FileName || prev?.TrackNumber !== info.TrackNumber) {
-                        return info;
-                    }
-                    return prev;
-                });
-            });
-        }, 100);
-        return () => clearInterval(timer);
-    }, []);
-
-    return { musicInfo, playerState, smoothPosition, shouldUnlock };
+    return { 
+        musicInfo, 
+        playerState,
+    };
 }

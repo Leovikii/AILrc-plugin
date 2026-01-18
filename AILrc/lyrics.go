@@ -63,10 +63,6 @@ func LoadLyrics(pathStr string) []LyricLine {
 	}
 
 	ext := strings.ToLower(filepath.Ext(lrcPath))
-	if strings.HasSuffix(strings.ToLower(lrcPath), ".wav.vtt") || strings.HasSuffix(strings.ToLower(lrcPath), ".wav.lrc") {
-		// handle compound extensions logic if needed specifically, but generic parse works
-	}
-
 	lyrics := parseLyrics(content, ext)
 
 	lyricCache[lrcPath] = cacheEntry{
@@ -78,29 +74,57 @@ func LoadLyrics(pathStr string) []LyricLine {
 }
 
 func findLyricFile(audioPath string) string {
-	exts := []string{".lrc", ".srt", ".vtt", ".txt"}
+	dir := filepath.Dir(audioPath)
+	baseName := filepath.Base(audioPath)
+	ext := filepath.Ext(baseName)
+	stem := strings.TrimSuffix(baseName, ext)
+	stemLower := strings.ToLower(stem)
 
-	baseWithoutExt := audioPath
-	ext := filepath.Ext(audioPath)
-	if ext != "" {
-		baseWithoutExt = strings.TrimSuffix(audioPath, ext)
-	}
-
-	searchPaths := []string{
-		baseWithoutExt,
-		audioPath,
-	}
-
-	for _, basePath := range searchPaths {
-		for _, e := range exts {
-			path := basePath + e
-			if _, err := os.Stat(path); err == nil {
-				return path
-			}
+	targets := []string{".lrc", ".vtt", ".srt"}
+	for _, t := range targets {
+		path := filepath.Join(dir, stem+t)
+		if _, err := os.Stat(path); err == nil {
+			return path
 		}
 	}
 
-	return ""
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+
+	var bestMatch string
+	bestScore := 0
+	prefix := stemLower + "."
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		lowerName := strings.ToLower(name)
+
+		if !strings.HasPrefix(lowerName, prefix) {
+			continue
+		}
+
+		score := 0
+		if strings.HasSuffix(lowerName, ".lrc") {
+			score = 3
+		} else if strings.HasSuffix(lowerName, ".vtt") {
+			score = 2
+		} else if strings.HasSuffix(lowerName, ".srt") {
+			score = 1
+		}
+
+		if score > bestScore {
+			bestScore = score
+			bestMatch = filepath.Join(dir, name)
+		}
+	}
+
+	return bestMatch
 }
 
 func parseLyrics(content []byte, ext string) []LyricLine {

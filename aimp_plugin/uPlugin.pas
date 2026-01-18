@@ -59,7 +59,8 @@ begin
 
   FController := TPluginController.Create(FCore, PlayerService);
   FController.InitMenus(Self);
-  FController.ToggleApp;
+
+  FController.LaunchApp;
 
   Result := S_OK;
 end;
@@ -68,7 +69,7 @@ procedure TAIMPLifecyclePlugin.Finalize;
 begin
   if Assigned(FController) then
   begin
-    FController.ToggleApp;
+    FController.CloseApp;
     FController.Free;
     FController := nil;
   end;

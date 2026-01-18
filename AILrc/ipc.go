@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 	"unsafe"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var (
@@ -57,6 +60,7 @@ var (
 	globalMusicInfo MusicInfoInternal
 	stateMutex      sync.RWMutex
 	oldWndProc      uintptr
+	ipcContext      context.Context
 )
 
 type MusicInfoInternal struct {
@@ -66,7 +70,8 @@ type MusicInfoInternal struct {
 	FullPath    string
 }
 
-func setupIPC() {
+func setupIPC(ctx context.Context) {
+	ipcContext = ctx
 	hwnd := getWindowHandle()
 	if hwnd == 0 {
 		return
@@ -105,17 +110,18 @@ func handleMessage(jsonStr string) {
 		var ld LockData
 		if err := json.Unmarshal(baseMsg.Data, &ld); err == nil {
 			SetClickThrough(ld.Locked)
+			if ipcContext != nil {
+				runtime.EventsEmit(ipcContext, "lock_state_change", ld.Locked)
+			}
 		}
 		return
 	}
-
-	stateMutex.Lock()
-	defer stateMutex.Unlock()
 
 	switch baseMsg.Type {
 	case "track":
 		var td TrackData
 		if err := json.Unmarshal(baseMsg.Data, &td); err == nil {
+			stateMutex.Lock()
 			globalMusicInfo = MusicInfoInternal{
 				FileName:    filepath.Base(td.FilePath),
 				TrackNumber: 0,
@@ -123,19 +129,38 @@ func handleMessage(jsonStr string) {
 				FullPath:    td.FilePath,
 			}
 			globalState.Position = 0
+			stateMutex.Unlock()
+
+			if ipcContext != nil {
+				runtime.EventsEmit(ipcContext, "track", td)
+			}
 		}
+
 	case "state":
 		var sd StateData
 		if err := json.Unmarshal(baseMsg.Data, &sd); err == nil {
+			stateMutex.Lock()
 			globalState.State = sd.State
 			globalMusicInfo.IsActive = true
+			stateMutex.Unlock()
+
+			if ipcContext != nil {
+				runtime.EventsEmit(ipcContext, "state", sd)
+			}
 		}
+
 	case "position":
 		var pd PositionData
 		if err := json.Unmarshal(baseMsg.Data, &pd); err == nil {
+			stateMutex.Lock()
 			globalState.Position = int(pd.Position * 1000)
 			globalState.State = 2
 			globalMusicInfo.IsActive = true
+			stateMutex.Unlock()
+
+			if ipcContext != nil {
+				runtime.EventsEmit(ipcContext, "position", pd)
+			}
 		}
 	}
 }

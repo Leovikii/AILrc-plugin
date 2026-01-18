@@ -28,8 +28,6 @@ type
     FMenuToggle: IAIMPMenuItem;
     FMenuLock: IAIMPMenuItem;
 
-    FIsLocked: Boolean;
-
     procedure UpdateMenuState;
     procedure SyncInitialData;
   public
@@ -39,13 +37,16 @@ type
     procedure InitMenus(Handler: IUnknown);
     procedure HandleMenuAction(MenuItem: IAIMPMenuItem);
 
+    procedure LaunchApp;
+    procedure CloseApp;
     procedure ToggleApp;
+
     procedure ToggleLock;
 
     procedure SendTrackInfo;
     procedure SendState;
     procedure SendPosition;
-    procedure SendLockState;
+    procedure SendLockState(Locked: Boolean);
   end;
 
 implementation
@@ -69,7 +70,6 @@ constructor TPluginController.Create(Core: IAIMPCore; Player: IAIMPServicePlayer
 begin
   FCore := Core;
   FPlayer := Player;
-  FIsLocked := False;
   if FCore.QueryInterface(IID_IAIMPServiceMenuManager, FMenuManager) <> S_OK then
     FMenuManager := nil;
 
@@ -133,20 +133,22 @@ end;
 procedure TPluginController.UpdateMenuState;
 var
   Hwnd: THandle;
-  IsRunning: Boolean;
+  IsRunning, IsLocked: Boolean;
 begin
   Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
   IsRunning := Hwnd <> 0;
 
-  if not IsRunning then
-    FIsLocked := False;
+  if IsRunning then
+    IsLocked := TAIMPUtils.IsWindowLocked(Hwnd)
+  else
+    IsLocked := False;
 
   if Assigned(FMenuToggle) then
     FMenuToggle.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, Integer(IsRunning));
 
   if Assigned(FMenuLock) then
   begin
-    FMenuLock.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, Integer(IsRunning and FIsLocked));
+    FMenuLock.SetValueAsInt32(AIMP_MENUITEM_PROPID_CHECKED, Integer(IsLocked));
     FMenuLock.SetValueAsInt32(AIMP_MENUITEM_PROPID_ENABLED, Integer(IsRunning));
   end;
 end;
@@ -167,17 +169,13 @@ begin
   UpdateMenuState;
 end;
 
-procedure TPluginController.ToggleApp;
+procedure TPluginController.LaunchApp;
 var
-  Hwnd: THandle;
   AppExe: string;
+  Hwnd: THandle;
 begin
   Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
-  if Hwnd <> 0 then
-  begin
-    PostMessage(Hwnd, WM_CLOSE, 0, 0);
-  end
-  else
+  if Hwnd = 0 then
   begin
     AppExe := ExtractFilePath(ParamStr(0)) + 'AILrc.exe';
     if FileExists(AppExe) then
@@ -186,6 +184,26 @@ begin
       SyncInitialData;
     end;
   end;
+end;
+
+procedure TPluginController.CloseApp;
+var
+  Hwnd: THandle;
+begin
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd <> 0 then
+    PostMessage(Hwnd, WM_CLOSE, 0, 0);
+end;
+
+procedure TPluginController.ToggleApp;
+var
+  Hwnd: THandle;
+begin
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd <> 0 then
+    CloseApp
+  else
+    LaunchApp;
 end;
 
 procedure TPluginController.SyncInitialData;
@@ -205,17 +223,22 @@ begin
     Sleep(1000);
     SendTrackInfo;
     SendState;
-    SendLockState;
   end;
 end;
 
 procedure TPluginController.ToggleLock;
+var
+  Hwnd: THandle;
+  CurrentlyLocked: Boolean;
 begin
-  FIsLocked := not FIsLocked;
-  SendLockState;
+  Hwnd := FindWindow(nil, PChar(TARGET_WINDOW_TITLE));
+  if Hwnd = 0 then Exit;
+
+  CurrentlyLocked := TAIMPUtils.IsWindowLocked(Hwnd);
+  SendLockState(not CurrentlyLocked);
 end;
 
-procedure TPluginController.SendLockState;
+procedure TPluginController.SendLockState(Locked: Boolean);
 var
   JSON, Data: TJSONObject;
 begin
@@ -223,7 +246,7 @@ begin
   try
     Data := TJSONObject.Create;
     JSON.AddPair('type', 'lock');
-    Data.AddPair('locked', TJSONBool.Create(FIsLocked));
+    Data.AddPair('locked', TJSONBool.Create(Locked));
     JSON.AddPair('data', Data);
     TAIMPUtils.SendJSON(JSON);
   finally

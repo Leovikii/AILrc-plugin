@@ -28,7 +28,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	setupIPC()
+	setupIPC(ctx)
 
 	config := LoadAppConfig()
 	if config.WindowWidth > 0 {

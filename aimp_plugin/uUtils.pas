@@ -3,7 +3,7 @@ unit uUtils;
 interface
 
 uses
-  Windows, SysUtils, System.JSON, Messages, apiCore, apiObjects, uTypes;
+  Windows, Messages, SysUtils, System.JSON, apiCore, apiObjects, uTypes;
 
 type
   TAIMPUtils = class
@@ -11,9 +11,13 @@ type
     class function GetAIMPString(AIMPStr: IAIMPString): string;
     class function MakeString(Core: IAIMPCore; const S: string): IAIMPString;
     class procedure SendJSON(JSON: TJSONObject);
+    class function IsWindowLocked(Hwnd: THandle): Boolean;
   end;
 
 implementation
+
+const
+  WS_EX_TRANSPARENT = $20;
 
 class function TAIMPUtils.GetAIMPString(AIMPStr: IAIMPString): string;
 begin
@@ -48,6 +52,16 @@ begin
 
   SendMessageTimeout(Hwnd, WM_COPYDATA, 0, LPARAM(@CopyData),
     SMTO_ABORTIFHUNG or SMTO_NORMAL, 10, nil);
+end;
+
+class function TAIMPUtils.IsWindowLocked(Hwnd: THandle): Boolean;
+var
+  Style: LongInt;
+begin
+  Result := False;
+  if Hwnd = 0 then Exit;
+  Style := GetWindowLong(Hwnd, GWL_EXSTYLE);
+  Result := (Style and WS_EX_TRANSPARENT) <> 0;
 end;
 
 end.
