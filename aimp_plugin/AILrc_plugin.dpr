@@ -2,7 +2,10 @@ library AILrc_plugin;
 
 uses
   apiPlugin,
-  uPlugin in 'uPlugin.pas';
+  uPlugin in 'uPlugin.pas',
+  uTypes in 'uTypes.pas',
+  uUtils in 'uUtils.pas',
+  uController in 'uController.pas';
 
 {$R *.res}
 

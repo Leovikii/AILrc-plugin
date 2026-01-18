@@ -48,6 +48,10 @@ type PositionData struct {
 	Position float64 `json:"position"`
 }
 
+type LockData struct {
+	Locked bool `json:"locked"`
+}
+
 var (
 	globalState     PlayerState
 	globalMusicInfo MusicInfoInternal
@@ -94,6 +98,14 @@ func setupIPC() {
 func handleMessage(jsonStr string) {
 	var baseMsg PluginMessage
 	if err := json.Unmarshal([]byte(jsonStr), &baseMsg); err != nil {
+		return
+	}
+
+	if baseMsg.Type == "lock" {
+		var ld LockData
+		if err := json.Unmarshal(baseMsg.Data, &ld); err == nil {
+			SetClickThrough(ld.Locked)
+		}
 		return
 	}
 
