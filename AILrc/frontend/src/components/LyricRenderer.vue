@@ -47,6 +47,7 @@ defineExpose({ lyricRef });
         class="pointer-events-none flex flex-col items-center justify-center p-2 w-full h-auto"
     >
         <div
+            v-memo="[mainText, mainTextStyle]"
             class="leading-tight tracking-wide wrap-break-word whitespace-pre-wrap text-center"
             :style="mainTextStyle"
         >
@@ -55,6 +56,7 @@ defineExpose({ lyricRef });
 
         <div
             v-if="subText"
+            v-memo="[subText, subTextStyle]"
             class="leading-tight tracking-wide wrap-break-word whitespace-pre-wrap text-center mt-1.5"
             :style="subTextStyle"
         >
