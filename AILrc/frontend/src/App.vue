@@ -82,19 +82,44 @@ onMounted(() => {
     onUnmounted(() => window.removeEventListener('resize', handleResize));
 });
 
+watch(isSettingsOpen, async (isOpen) => {
+    await nextTick();
+    if (isOpen) {
+        ResizeWindow(400, 520);
+    } else {
+        if (lyricRef.value?.lyricRef) {
+            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+            const targetW = config.value.windowWidth || window.innerWidth;
+            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
+        }
+    }
+}, { flush: 'post' });
+
 watch(
-    [isSettingsOpen, mainText, subText, () => config.value.fontSize, () => config.value.windowWidth],
+    [mainText, subText],
     async () => {
+        if (isSettingsOpen.value) return;
         await nextTick();
-        
-        if (isSettingsOpen.value) {
-            ResizeWindow(400, 520);
-        } else {
-            if (lyricRef.value?.lyricRef) {
-                const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
-                const targetW = config.value.windowWidth || window.innerWidth;
-                ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
-            }
+
+        if (lyricRef.value?.lyricRef) {
+            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+            const targetW = config.value.windowWidth || window.innerWidth;
+            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
+        }
+    },
+    { flush: 'post' }
+);
+
+watch(
+    [() => config.value.fontSize, () => config.value.windowWidth],
+    async () => {
+        if (isSettingsOpen.value) return;
+        await nextTick();
+
+        if (lyricRef.value?.lyricRef) {
+            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+            const targetW = config.value.windowWidth || window.innerWidth;
+            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
         }
     },
     { flush: 'post' }
@@ -131,16 +156,18 @@ const currentBgOpacity = computed(() =>
                 @close="handleCloseSettings"
             />
             <template v-else>
-                <ControlBar 
+                <ControlBar
                     v-if="!isLocked"
+                    v-memo="[musicInfo?.FileName, isLocked]"
                     :file-name="musicInfo?.FileName"
                     @open-settings="handleOpenSettings"
                     @lock="isLocked = true"
                     @close="QuitApp"
                 />
                 <div class="flex-1 flex items-center justify-center w-full min-h-0 px-4">
-                    <LyricRenderer 
+                    <LyricRenderer
                         ref="lyricRef"
+                        v-memo="[mainText, subText, config.fontSize, config.fontColor, config.strokeColor, config.textOpacity]"
                         :main-text="mainText"
                         :sub-text="subText"
                         :config="config"
