@@ -1,13 +1,13 @@
 # AILrc
 
-A modern, high-performance desktop lyric renderer for AIMP player, built with Go (Wails) and React.
+A modern, high-performance desktop lyric renderer for AIMP player, built with Go (Wails) and Vue 3.
 
 Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a native **Delphi plugin** to push playback status and metadata directly to the renderer via IPC, ensuring zero latency, smooth animations, and minimal CPU usage.
 
 ## ✨ Features
 
 * **Zero Latency Sync**: Native AIMP plugin pushes playback state (10ms precision).
-* **Modern UI**: Built with React & TailwindCSS. Support for blurred backgrounds, glowing text, and smooth transitions.
+* **Modern UI**: Built with Vue 3 & TailwindCSS. Support for blurred backgrounds, glowing text, and smooth transitions.
 * **Format Support**: Supports `.lrc`, `.srt`, and `.vtt` lyric files.
 * **Smart Search**: Automatically finds lyrics in the same directory as the audio file (supports `filename.vtt` and `filename.wav.vtt`).
 * **Click-Through Mode**: Lock the window to let mouse events pass through to underlying applications.
@@ -15,7 +15,7 @@ Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a 
 
 ## 🛠 Tech Stack
 
-* **Frontend**: React, TypeScript, TailwindCSS v4
+* **Frontend**: Vue 3, TypeScript, TailwindCSS v4
 * **Backend**: Go (Wails framework)
 * **Plugin**: Delphi (Pascal) for AIMP SDK interaction
 * **IPC**: Windows `WM_COPYDATA` for high-speed message passing
