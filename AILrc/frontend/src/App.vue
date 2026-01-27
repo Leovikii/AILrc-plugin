@@ -22,6 +22,7 @@ const { mainText, subText } = useLyrics(
 const lyricRef = ref<InstanceType<typeof LyricRenderer>>();
 const resizeTimeoutRef = ref<number | null>(null);
 const isResizingRef = ref(false);
+const resizeRafId = ref<number | null>(null);
 
 onMounted(() => {
     if (!config.value.windowWidth) {
@@ -50,77 +51,77 @@ const calculateTargetHeight = (contentHeight: number) => {
     return Math.ceil(Math.max(contentHeight + padding, standardHeight.value));
 };
 
+const performResize = () => {
+    if (isSettingsOpen.value) {
+        ResizeWindow(400, 520);
+        return;
+    }
+
+    if (!lyricRef.value?.lyricRef) return;
+
+    const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+    const targetW = config.value.windowWidth || window.innerWidth;
+    ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
+};
+
+const scheduleResize = () => {
+    if (resizeRafId.value !== null) return;
+
+    resizeRafId.value = requestAnimationFrame(() => {
+        performResize();
+        resizeRafId.value = null;
+    });
+};
+
 onMounted(() => {
+    let resizeTimer: number | null = null;
     const handleResize = () => {
-        if (isSettingsOpen.value) return;
-        
-        isResizingRef.value = true;
-        const currentW = window.innerWidth;
-        const currentH = window.innerHeight;
+        if (resizeTimer) return;
 
-        let targetH = standardHeight.value;
-        if (lyricRef.value?.lyricRef) {
-            targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
-        }
+        resizeTimer = window.setTimeout(() => {
+            if (isSettingsOpen.value) return;
 
-        if (isLoaded.value && Math.abs(currentW - config.value.windowWidth) > 5) {
-            if (resizeTimeoutRef.value) clearTimeout(resizeTimeoutRef.value);
-            resizeTimeoutRef.value = window.setTimeout(() => {
-                const newConfig = { ...config.value, windowWidth: currentW };
-                setConfig(newConfig);
-                saveConfig(newConfig);
-                isResizingRef.value = false;
-            }, 200);
-        }
+            isResizingRef.value = true;
+            const currentW = window.innerWidth;
+            const currentH = window.innerHeight;
 
-        if (Math.abs(currentH - targetH) > 5) {
-            ResizeWindow(currentW, targetH);
-        }
+            let targetH = standardHeight.value;
+            if (lyricRef.value?.lyricRef) {
+                targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+            }
+
+            if (isLoaded.value && Math.abs(currentW - config.value.windowWidth) > 5) {
+                if (resizeTimeoutRef.value) clearTimeout(resizeTimeoutRef.value);
+                resizeTimeoutRef.value = window.setTimeout(() => {
+                    const newConfig = { ...config.value, windowWidth: currentW };
+                    setConfig(newConfig);
+                    saveConfig(newConfig);
+                    isResizingRef.value = false;
+                }, 200);
+            }
+
+            if (Math.abs(currentH - targetH) > 5) {
+                ResizeWindow(currentW, targetH);
+            }
+
+            resizeTimer = null;
+        }, 100);
     };
 
     window.addEventListener('resize', handleResize);
-    onUnmounted(() => window.removeEventListener('resize', handleResize));
+    onUnmounted(() => {
+        window.removeEventListener('resize', handleResize);
+        if (resizeRafId.value !== null) {
+            cancelAnimationFrame(resizeRafId.value);
+        }
+    });
 });
 
-watch(isSettingsOpen, async (isOpen) => {
-    await nextTick();
-    if (isOpen) {
-        ResizeWindow(400, 520);
-    } else {
-        if (lyricRef.value?.lyricRef) {
-            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
-            const targetW = config.value.windowWidth || window.innerWidth;
-            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
-        }
-    }
-}, { flush: 'post' });
-
 watch(
-    [mainText, subText],
+    [isSettingsOpen, mainText, subText, () => config.value.fontSize, () => config.value.windowWidth],
     async () => {
-        if (isSettingsOpen.value) return;
         await nextTick();
-
-        if (lyricRef.value?.lyricRef) {
-            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
-            const targetW = config.value.windowWidth || window.innerWidth;
-            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
-        }
-    },
-    { flush: 'post' }
-);
-
-watch(
-    [() => config.value.fontSize, () => config.value.windowWidth],
-    async () => {
-        if (isSettingsOpen.value) return;
-        await nextTick();
-
-        if (lyricRef.value?.lyricRef) {
-            const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
-            const targetW = config.value.windowWidth || window.innerWidth;
-            ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
-        }
+        scheduleResize();
     },
     { flush: 'post' }
 );

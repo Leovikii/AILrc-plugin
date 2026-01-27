@@ -12,16 +12,10 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-var (
-	user32                = syscall.NewLazyDLL("user32.dll")
-	procFindWindowW       = user32.NewProc("FindWindowW")
-	procSetWindowLongPtrW = user32.NewProc("SetWindowLongPtrW")
-	procCallWindowProcW   = user32.NewProc("CallWindowProcW")
-)
-
 const (
-	GWLP_WNDPROC = -4
-	WM_COPYDATA  = 0x004A
+	GWLP_WNDPROC     = -4
+	WM_COPYDATA      = 0x004A
+	IPC_MAGIC_NUMBER = 19941012
 )
 
 type COPYDATASTRUCT struct {
@@ -80,7 +74,7 @@ func setupIPC(ctx context.Context) {
 	newWndProc := syscall.NewCallback(func(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		if msg == WM_COPYDATA {
 			cds := (*COPYDATASTRUCT)(unsafe.Pointer(lParam))
-			if cds.DwData == 19941012 {
+			if cds.DwData == IPC_MAGIC_NUMBER {
 				jsonStr := ""
 				if cds.CbData > 0 {
 					data := make([]byte, cds.CbData)
@@ -175,20 +169,4 @@ func GetRealtimeState() PlayerState {
 	stateMutex.RLock()
 	defer stateMutex.RUnlock()
 	return globalState
-}
-
-func getWindowHandle() uintptr {
-	title, _ := syscall.UTF16PtrFromString("AILrc")
-	ret, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(title)))
-	return ret
-}
-
-func setWindowLongPtr(hwnd uintptr, index int, newLong uintptr) uintptr {
-	ret, _, _ := procSetWindowLongPtrW.Call(hwnd, uintptr(index), newLong)
-	return ret
-}
-
-func callWindowProc(prevWndProc uintptr, hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
-	ret, _, _ := procCallWindowProcW.Call(prevWndProc, hwnd, uintptr(msg), wParam, lParam)
-	return ret
 }

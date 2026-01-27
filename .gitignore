@@ -23,6 +23,7 @@ AILrc/frontend/.vite/
 
 # Wails generated bindings (Optional: keep if you want types without building)
 # AILrc/wailsjs/
+.claude
 
 # --- AIMP Plugin (Delphi) ---
 # Delphi history and recovery

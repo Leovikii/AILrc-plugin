@@ -47,7 +47,7 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	config.WindowX = x
 	config.WindowY = y
 	config.WindowPositionSaved = true
-	SaveAppConfig(config)
+	_ = SaveAppConfig(config)
 
 	return false
 }
@@ -82,7 +82,7 @@ func (a *App) GetConfig() AppConfig {
 }
 
 func (a *App) SaveConfig(config AppConfig) {
-	SaveAppConfig(config)
+	_ = SaveAppConfig(config)
 }
 
 func (a *App) QuitApp() {

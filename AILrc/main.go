@@ -25,11 +25,7 @@ func main() {
 				time.Now().Format(time.RFC3339), r, string(debug.Stack()))
 			_ = os.WriteFile("crash.log", []byte(logContent), 0644)
 
-			user32 := syscall.NewLazyDLL("user32.dll")
-			procMessageBox := user32.NewProc("MessageBoxW")
-			title, _ := syscall.UTF16PtrFromString("AILrc Critical Error")
-			msg, _ := syscall.UTF16PtrFromString("Application has crashed. Please check crash.log for details.")
-			procMessageBox.Call(0, uintptr(unsafe.Pointer(msg)), uintptr(unsafe.Pointer(title)), 0x10)
+			showErrorMessageBox("AILrc Critical Error", "Application has crashed. Please check crash.log for details.")
 		}
 	}()
 
