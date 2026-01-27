@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -38,7 +39,10 @@ func GetConfigPath() string {
 		return "config.json"
 	}
 	appDir := filepath.Join(configDir, "AILrc")
-	os.MkdirAll(appDir, 0755)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		log.Printf("Failed to create config directory: %v", err)
+		return "config.json"
+	}
 	return filepath.Join(appDir, "config.json")
 }
 
@@ -48,14 +52,19 @@ func LoadAppConfig() AppConfig {
 	path := GetConfigPath()
 	data, err := os.ReadFile(path)
 	if err == nil {
-		json.Unmarshal(data, &config)
+		if err := json.Unmarshal(data, &config); err != nil {
+			log.Printf("Failed to parse config file: %v, using defaults", err)
+		}
 	}
 
 	return config
 }
 
-func SaveAppConfig(config AppConfig) {
+func SaveAppConfig(config AppConfig) error {
 	path := GetConfigPath()
-	data, _ := json.MarshalIndent(config, "", "  ")
-	os.WriteFile(path, data, 0644)
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }

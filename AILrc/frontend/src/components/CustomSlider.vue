@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 interface Props {
     label: string;
@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const trackRef = ref<HTMLDivElement>();
 const isDragging = ref(false);
+let rafId: number | null = null;
 
 const safeValue = computed(() => props.value ?? props.min);
 const percentage = computed(() => {
@@ -57,31 +58,45 @@ const handlePointerDown = (e: PointerEvent) => {
 };
 
 const handleGlobalMove = (e: PointerEvent) => {
+    if (!isDragging.value) return;
+
     e.preventDefault();
-    calculateValue(e.clientX);
+
+    if (rafId !== null) return;
+
+    rafId = requestAnimationFrame(() => {
+        calculateValue(e.clientX);
+        rafId = null;
+    });
 };
 
 const handleGlobalUp = (e: PointerEvent) => {
+    if (!isDragging.value) return;
+
     e.preventDefault();
     isDragging.value = false;
+
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
 };
 
-watch(isDragging, (dragging) => {
-    if (dragging) {
-        window.addEventListener('pointermove', handleGlobalMove);
-        window.addEventListener('pointerup', handleGlobalUp);
-        window.addEventListener('pointercancel', handleGlobalUp);
-    } else {
-        window.removeEventListener('pointermove', handleGlobalMove);
-        window.removeEventListener('pointerup', handleGlobalUp);
-        window.removeEventListener('pointercancel', handleGlobalUp);
-    }
+onMounted(() => {
+    window.addEventListener('pointermove', handleGlobalMove);
+    window.addEventListener('pointerup', handleGlobalUp);
+    window.addEventListener('pointercancel', handleGlobalUp);
 });
 
 onUnmounted(() => {
     window.removeEventListener('pointermove', handleGlobalMove);
     window.removeEventListener('pointerup', handleGlobalUp);
     window.removeEventListener('pointercancel', handleGlobalUp);
+
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
 });
 </script>
 

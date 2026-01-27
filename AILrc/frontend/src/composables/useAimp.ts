@@ -23,7 +23,7 @@ export function useAimp() {
         const cancelTrack = EventsOn("track", async () => {
             musicInfo.value = await FetchMusicInfo();
             if (playerState.value) {
-                playerState.value = { ...playerState.value, Position: 0 };
+                playerState.value.Position = 0;
             } else {
                 playerState.value = { Position: 0, State: 1 };
             }
@@ -32,7 +32,7 @@ export function useAimp() {
         const cancelState = EventsOn("state", async (data: any) => {
             if (typeof data === 'object' && data.state !== undefined) {
                 if (playerState.value) {
-                    playerState.value = { ...playerState.value, State: data.state };
+                    playerState.value.State = data.state;
                 } else {
                     playerState.value = { Position: 0, State: data.state };
                 }
@@ -45,14 +45,14 @@ export function useAimp() {
              if (typeof data === 'number') {
                  const posMs = Math.floor(data * 1000);
                  if (playerState.value) {
-                     playerState.value = { ...playerState.value, Position: posMs };
+                     playerState.value.Position = posMs;
                  } else {
                      playerState.value = { Position: posMs, State: 1 };
                  }
              } else if (data && data.position !== undefined) {
                  const posMs = Math.floor(data.position * 1000);
                  if (playerState.value) {
-                     playerState.value = { ...playerState.value, Position: posMs };
+                     playerState.value.Position = posMs;
                  } else {
                      playerState.value = { Position: posMs, State: 1 };
                  }

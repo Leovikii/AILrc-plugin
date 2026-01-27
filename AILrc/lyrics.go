@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/saintfish/chardet"
@@ -24,9 +25,12 @@ type LyricLine struct {
 }
 
 type cacheEntry struct {
-	ModTime time.Time
-	Lyrics  []LyricLine
+	ModTime    time.Time
+	Lyrics     []LyricLine
+	LastAccess time.Time
 }
+
+const maxCacheSize = 100
 
 var (
 	lrcRegex       = regexp.MustCompile(`\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]`)
@@ -34,6 +38,7 @@ var (
 	bracketRegex   = regexp.MustCompile(`^(.*?)\s*[(（【\[](.*?)[)）】\]]\s*$`)
 	delimiterRegex = regexp.MustCompile(`^(.*?)\s*[/|]\s*(.*?)$`)
 	lyricCache     = make(map[string]cacheEntry)
+	cacheMutex     sync.RWMutex
 )
 
 func LoadLyrics(pathStr string) []LyricLine {
@@ -51,11 +56,18 @@ func LoadLyrics(pathStr string) []LyricLine {
 		return nil
 	}
 
+	cacheMutex.RLock()
 	if entry, ok := lyricCache[lrcPath]; ok {
 		if entry.ModTime.Equal(info.ModTime()) {
+			cacheMutex.RUnlock()
+			cacheMutex.Lock()
+			entry.LastAccess = time.Now()
+			lyricCache[lrcPath] = entry
+			cacheMutex.Unlock()
 			return entry.Lyrics
 		}
 	}
+	cacheMutex.RUnlock()
 
 	content, err := os.ReadFile(lrcPath)
 	if err != nil {
@@ -65,9 +77,27 @@ func LoadLyrics(pathStr string) []LyricLine {
 	ext := strings.ToLower(filepath.Ext(lrcPath))
 	lyrics := parseLyrics(content, ext)
 
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	if len(lyricCache) >= maxCacheSize {
+		oldestKey := ""
+		oldestTime := time.Now()
+		for k, v := range lyricCache {
+			if v.LastAccess.Before(oldestTime) {
+				oldestTime = v.LastAccess
+				oldestKey = k
+			}
+		}
+		if oldestKey != "" {
+			delete(lyricCache, oldestKey)
+		}
+	}
+
 	lyricCache[lrcPath] = cacheEntry{
-		ModTime: info.ModTime(),
-		Lyrics:  lyrics,
+		ModTime:    info.ModTime(),
+		Lyrics:     lyrics,
+		LastAccess: time.Now(),
 	}
 
 	return lyrics
@@ -136,6 +166,14 @@ func parseLyrics(content []byte, ext string) []LyricLine {
 	return parseLrc(utf8Content)
 }
 
+func padMilliseconds(msStr string) int {
+	for len(msStr) < 3 {
+		msStr += "0"
+	}
+	ms, _ := strconv.Atoi(msStr)
+	return ms
+}
+
 func parseLrc(content string) []LyricLine {
 	var rawLines []tempLine
 	scanner := bufio.NewScanner(strings.NewReader(content))
@@ -159,12 +197,7 @@ func parseLrc(content string) []LyricLine {
 			ms := 0
 			if match[6] != -1 {
 				msStr := line[match[6]:match[7]]
-				if len(msStr) == 2 {
-					msStr += "0"
-				} else if len(msStr) == 1 {
-					msStr += "00"
-				}
-				ms, _ = strconv.Atoi(msStr)
+				ms = padMilliseconds(msStr)
 			}
 
 			rawLines = append(rawLines, tempLine{
@@ -222,21 +255,13 @@ func parseSrtVtt(content string) []LyricLine {
 				m, _ = strconv.Atoi(matches[2])
 				s, _ = strconv.Atoi(matches[3])
 				if len(matches) > 4 && matches[4] != "" {
-					msStr := matches[4]
-					for len(msStr) < 3 {
-						msStr += "0"
-					}
-					ms, _ = strconv.Atoi(msStr)
+					ms = padMilliseconds(matches[4])
 				}
 			} else {
 				m, _ = strconv.Atoi(matches[2])
 				s, _ = strconv.Atoi(matches[3])
 				if len(matches) > 4 && matches[4] != "" {
-					msStr := matches[4]
-					for len(msStr) < 3 {
-						msStr += "0"
-					}
-					ms, _ = strconv.Atoi(msStr)
+					ms = padMilliseconds(matches[4])
 				}
 			}
 
@@ -283,12 +308,12 @@ func processLines(rawLines []tempLine) []LyricLine {
 	})
 
 	var lyrics []LyricLine
-	const MergeThreshold = 200
+	const LyricMergeThresholdMs = 200
 
 	for i := 0; i < len(rawLines); i++ {
 		curr := rawLines[i]
 
-		if i > 0 && abs(curr.Time-rawLines[i-1].Time) < MergeThreshold {
+		if i > 0 && abs(curr.Time-rawLines[i-1].Time) < LyricMergeThresholdMs {
 			lastIdx := len(lyrics) - 1
 			if lastIdx >= 0 {
 				if lyrics[lastIdx].MainText == curr.Text || lyrics[lastIdx].SubText == curr.Text {
