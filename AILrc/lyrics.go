@@ -33,7 +33,7 @@ type cacheEntry struct {
 const maxCacheSize = 100
 
 var (
-	lrcRegex       = regexp.MustCompile(`\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]`)
+	lrcRegex       = regexp.MustCompile(`\[(\d+):(\d{1,2})(?:\.(\d{1,3}))?\]`)
 	srtVttRegex    = regexp.MustCompile(`(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?`)
 	bracketRegex   = regexp.MustCompile(`^(.*?)\s*[(（【\[](.*?)[)）】\]]\s*$`)
 	delimiterRegex = regexp.MustCompile(`^(.*?)\s*[/|]\s*(.*?)$`)
