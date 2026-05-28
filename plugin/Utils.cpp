@@ -34,8 +34,17 @@ namespace Utils {
         return wstrTo;
     }
 
+    HWND GetCachedWindow() {
+        static HWND cachedHwnd = nullptr;
+        if (cachedHwnd && IsWindow(cachedHwnd)) {
+            return cachedHwnd;
+        }
+        cachedHwnd = FindWindowW(nullptr, TARGET_WINDOW_TITLE);
+        return cachedHwnd;
+    }
+
     void SendJSON(const std::string& jsonStr) {
-        HWND hwnd = FindWindowW(nullptr, TARGET_WINDOW_TITLE);
+        HWND hwnd = GetCachedWindow();
         if (!hwnd) return;
 
         COPYDATASTRUCT copyData;

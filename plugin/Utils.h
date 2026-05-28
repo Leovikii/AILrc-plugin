@@ -16,5 +16,5 @@ namespace Utils {
     bool IsWindowLocked(HWND hwnd);
 
     constexpr const wchar_t* TARGET_WINDOW_TITLE = L"AILrc";
-    constexpr ULONG_PTR COPYDATA_ID_AILRC = 0x41494C52; // Needs to match Delphi's COPYDATA_ID_AILRC (Wait, Delphi used what? Let's check...)
+    constexpr ULONG_PTR COPYDATA_ID_AILRC = 19941012;
 }

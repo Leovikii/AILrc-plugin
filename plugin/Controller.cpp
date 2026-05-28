@@ -2,6 +2,7 @@
 #include "Utils.h"
 #include <nlohmann/json.hpp>
 #include <shellapi.h>
+#include <thread>
 
 void WINAPI MenuStateUpdater::OnExecute(IUnknown* Data) {
     if (FController) {
@@ -168,19 +169,24 @@ void PluginController::ToggleApp() {
 }
 
 void PluginController::SyncInitialData() {
-    HWND hwnd = nullptr;
-    int attempts = 0;
-    do {
-        Sleep(100);
-        hwnd = FindWindowW(nullptr, Utils::TARGET_WINDOW_TITLE);
-        attempts++;
-    } while (!hwnd && attempts <= 50);
+    std::string trackJson = GetTrackInfoJSON();
+    std::string stateJson = GetStateJSON();
 
-    if (hwnd) {
-        Sleep(1000);
-        SendTrackInfo();
-        SendState();
-    }
+    std::thread([trackJson, stateJson]() {
+        HWND hwnd = nullptr;
+        int attempts = 0;
+        do {
+            Sleep(100);
+            hwnd = FindWindowW(nullptr, Utils::TARGET_WINDOW_TITLE);
+            attempts++;
+        } while (!hwnd && attempts <= 50);
+
+        if (hwnd) {
+            Sleep(1000);
+            if (!trackJson.empty()) Utils::SendJSON(trackJson);
+            if (!stateJson.empty()) Utils::SendJSON(stateJson);
+        }
+    }).detach();
 }
 
 void PluginController::ToggleLock() {
@@ -197,16 +203,16 @@ void PluginController::SendLockState(bool locked) {
     Utils::SendJSON(j.dump());
 }
 
-void PluginController::SendTrackInfo() {
-    if (!FPlayer) return;
+std::string PluginController::GetTrackInfoJSON() {
+    if (!FPlayer) return "";
 
     IAIMPFileInfo* fileInfo = nullptr;
-    if (FPlayer->GetInfo(&fileInfo) != S_OK) return;
+    if (FPlayer->GetInfo(&fileInfo) != S_OK) return "";
 
     IAIMPPropertyList* propList = nullptr;
     if (fileInfo->QueryInterface(IID_IAIMPPropertyList, reinterpret_cast<void**>(&propList)) != S_OK) {
         fileInfo->Release();
-        return;
+        return "";
     }
 
     nlohmann::json j;
@@ -236,19 +242,28 @@ void PluginController::SendTrackInfo() {
         j["data"]["duration"] = duration;
     }
 
-    Utils::SendJSON(j.dump());
-
     propList->Release();
     fileInfo->Release();
+    return j.dump();
 }
 
-void PluginController::SendState() {
-    if (!FPlayer) return;
+void PluginController::SendTrackInfo() {
+    std::string jsonStr = GetTrackInfoJSON();
+    if (!jsonStr.empty()) Utils::SendJSON(jsonStr);
+}
+
+std::string PluginController::GetStateJSON() {
+    if (!FPlayer) return "";
     int state = FPlayer->GetState();
     nlohmann::json j;
     j["type"] = "state";
     j["data"]["state"] = state;
-    Utils::SendJSON(j.dump());
+    return j.dump();
+}
+
+void PluginController::SendState() {
+    std::string jsonStr = GetStateJSON();
+    if (!jsonStr.empty()) Utils::SendJSON(jsonStr);
 }
 
 void PluginController::SendPosition() {

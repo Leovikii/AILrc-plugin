@@ -45,6 +45,3 @@ out/
 # AIMP Package
 *.aimppack
 *.zip
-
-# AIMP SDK
-aimp_sdk_600

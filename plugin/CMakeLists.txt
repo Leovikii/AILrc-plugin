@@ -19,7 +19,7 @@ add_library(AILrc_plugin SHARED
 )
 
 # Include AIMP SDK
-target_include_directories(AILrc_plugin PRIVATE ${CMAKE_SOURCE_DIR}/../aimp_sdk_600/Sources/Cpp)
+target_include_directories(AILrc_plugin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/aimp_sdk)
 
 # Link JSON library
 target_link_libraries(AILrc_plugin PRIVATE nlohmann_json::nlohmann_json)

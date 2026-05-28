@@ -2,7 +2,7 @@
 
 A modern, high-performance desktop lyric renderer for AIMP player, built with Go (Wails) and Vue 3.
 
-Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a native **Delphi plugin** to push playback status and metadata directly to the renderer via IPC, ensuring zero latency, smooth animations, and minimal CPU usage.
+Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a native **C++ plugin** to push playback status and metadata directly to the renderer via IPC, ensuring zero latency, smooth animations, and minimal CPU usage.
 
 ## ✨ Features
 
@@ -17,7 +17,7 @@ Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a 
 
 * **Frontend**: Vue 3, TypeScript, TailwindCSS v4
 * **Backend**: Go (Wails framework)
-* **Plugin**: Delphi (Pascal) for AIMP SDK interaction
+* **Plugin**: Modern C++ using AIMP SDK
 * **IPC**: Windows `WM_COPYDATA` for high-speed message passing
 
 ## 🚀 Installation & Usage
@@ -40,8 +40,16 @@ Simply play a music file in AIMP. AILrc will automatically look for a matching l
 ### Prerequisites
 * Go 1.20+
 * Node.js 18+
-* Delphi 10.3+ (only if modifying the `aimp_plugin`)
+* CMake 3.15+ and Visual Studio Build Tools (C++) (only if modifying the `plugin`)
 * Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+
+### Build Plugin (C++)
+The plugin is automatically built in the cloud via GitHub Actions on every push. To build it locally:
+```bash
+cd plugin
+cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
+cmake --build build --config Release
+```
 
 ### Build Renderer
 ```bash

@@ -33,6 +33,8 @@ private:
     MenuStateUpdater* FMenuUpdater;
 
     void SyncInitialData();
+    std::string GetTrackInfoJSON();
+    std::string GetStateJSON();
 
 public:
     PluginController(IAIMPCore* core, IAIMPServicePlayer* player);
