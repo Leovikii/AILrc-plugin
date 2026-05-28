@@ -3,6 +3,7 @@ import { X } from 'lucide-vue-next';
 import type { AppConfig } from '../types';
 import CustomSlider from './CustomSlider.vue';
 import NumberInputRow from './NumberInputRow.vue';
+import packageJson from '../../package.json';
 
 interface Props {
     config: AppConfig;
@@ -26,7 +27,10 @@ const handleChange = (key: keyof AppConfig, value: any) => {
 <template>
     <div class="flex flex-col h-full text-white/90 px-6 py-5 select-none animate-in fade-in duration-300 bg-black/40 backdrop-blur-md">
         <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-3 shrink-0">
-            <h2 class="text-xs font-black tracking-[0.25em] text-pink-500 uppercase">Settings</h2>
+            <div class="flex items-center gap-2">
+                <h2 class="text-xs font-black tracking-[0.25em] text-pink-500 uppercase">Settings</h2>
+                <span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-1.5 py-0.5 rounded-sm tracking-widest shadow-sm">v{{ packageJson.version }}</span>
+            </div>
             <button @click="emit('close')" class="p-1.5 -mr-2 text-white/40 hover:text-white transition-colors" :style="{ '--wails-draggable': 'none' }">
                 <X :size="18" :stroke-width="2.5" />
             </button>

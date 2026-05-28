@@ -61,7 +61,12 @@ func (a *App) FetchMusicInfo() MusicInfo {
 }
 
 func (a *App) FetchPlayerState() PlayerState {
-	return GetRealtimeState()
+	state := GetRealtimeState()
+	actualState := getAimpState()
+	if actualState >= 0 {
+		state.State = actualState
+	}
+	return state
 }
 
 func (a *App) FetchLyrics(filename string) []LyricLine {
@@ -73,8 +78,8 @@ func (a *App) FetchLyrics(filename string) []LyricLine {
 	return LoadLyrics(filename)
 }
 
-func (a *App) SetWindowClickThrough(enabled bool) {
-	SetClickThrough(enabled)
+func (a *App) SetWindowClickThrough(enabled bool, rect *DOMRect) {
+	SetClickThrough(enabled, rect)
 }
 
 func (a *App) GetConfig() AppConfig {
@@ -89,6 +94,35 @@ func (a *App) QuitApp() {
 	runtime.Quit(a.ctx)
 }
 
+var (
+	lastResizeWidth  int
+	lastResizeHeight int
+)
+
 func (a *App) ResizeWindow(width, height int) {
+	if lastResizeWidth == width && lastResizeHeight == height {
+		return
+	}
+
+	if lastResizeHeight != height {
+		runtime.WindowSetMinSize(a.ctx, 300, height)
+		runtime.WindowSetMaxSize(a.ctx, 4000, height)
+	}
+
 	runtime.WindowSetSize(a.ctx, width, height)
+
+	lastResizeWidth = width
+	lastResizeHeight = height
+}
+
+func (a *App) PlayPause() {
+	sendAimpCommand(uintptr(AIMP_RA_CMD_PLAYPAUSE))
+}
+
+func (a *App) Previous() {
+	sendAimpCommand(uintptr(AIMP_RA_CMD_PREV))
+}
+
+func (a *App) Next() {
+	sendAimpCommand(uintptr(AIMP_RA_CMD_NEXT))
 }

@@ -8,6 +8,8 @@ import { useConfig } from './composables/useConfig';
 import ControlBar from './components/ControlBar.vue';
 import LyricRenderer from './components/LyricRenderer.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
+import ControlButton from './components/ControlButton.vue';
+import { Unlock } from 'lucide-vue-next';
 
 const isLocked = ref(false);
 const isSettingsOpen = ref(false);
@@ -36,8 +38,26 @@ onMounted(() => {
     onUnmounted(() => cancel());
 });
 
-watch(isLocked, (locked) => {
-    SetWindowClickThrough(locked);
+const unlockBtnRef = ref<HTMLElement | null>(null);
+
+watch(isLocked, async (locked) => {
+    if (locked) {
+        await nextTick();
+        if (unlockBtnRef.value) {
+            const rect = unlockBtnRef.value.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            SetWindowClickThrough(true, {
+                x: Math.round(rect.x * dpr),
+                y: Math.round(rect.y * dpr),
+                width: Math.round(rect.width * dpr),
+                height: Math.round(rect.height * dpr)
+            });
+        } else {
+            SetWindowClickThrough(true, { x: 0, y: 0, width: 0, height: 0 });
+        }
+    } else {
+        SetWindowClickThrough(false, { x: 0, y: 0, width: 0, height: 0 });
+    }
 });
 
 const standardHeight = computed(() => {
@@ -159,12 +179,26 @@ const currentBgOpacity = computed(() =>
             <template v-else>
                 <ControlBar
                     v-if="!isLocked"
-                    v-memo="[musicInfo?.FileName, isLocked]"
+                    v-memo="[musicInfo?.FileName, isLocked, playerState?.State]"
                     :file-name="musicInfo?.FileName"
+                    :state="playerState?.State"
                     @open-settings="handleOpenSettings"
                     @lock="isLocked = true"
                     @close="QuitApp"
                 />
+                <div v-else class="absolute top-0 right-0 p-2 z-50 group pointer-events-auto">
+                    <div
+                        ref="unlockBtnRef"
+                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out flex items-center"
+                    >
+                        <ControlButton
+                            @click="isLocked = false"
+                            title="Unlock Window"
+                        >
+                            <Unlock :size="16" :stroke-width="2.5" />
+                        </ControlButton>
+                    </div>
+                </div>
                 <div class="flex-1 flex items-center justify-center w-full min-h-0 px-4">
                     <LyricRenderer
                         ref="lyricRef"

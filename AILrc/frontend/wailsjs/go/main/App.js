@@ -18,6 +18,18 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function Next() {
+  return window['go']['main']['App']['Next']();
+}
+
+export function PlayPause() {
+  return window['go']['main']['App']['PlayPause']();
+}
+
+export function Previous() {
+  return window['go']['main']['App']['Previous']();
+}
+
 export function QuitApp() {
   return window['go']['main']['App']['QuitApp']();
 }
@@ -30,6 +42,6 @@ export function SaveConfig(arg1) {
   return window['go']['main']['App']['SaveConfig'](arg1);
 }
 
-export function SetWindowClickThrough(arg1) {
-  return window['go']['main']['App']['SetWindowClickThrough'](arg1);
+export function SetWindowClickThrough(arg1, arg2) {
+  return window['go']['main']['App']['SetWindowClickThrough'](arg1, arg2);
 }

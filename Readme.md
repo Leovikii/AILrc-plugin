@@ -2,7 +2,7 @@
 
 A modern, high-performance desktop lyric renderer for AIMP player, built with Go (Wails) and Vue 3.
 
-Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a native **Delphi plugin** to push playback status and metadata directly to the renderer via IPC, ensuring zero latency, smooth animations, and minimal CPU usage.
+Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a native **C++ plugin** to push playback status and metadata directly to the renderer via IPC, ensuring zero latency, smooth animations, and minimal CPU usage.
 
 ## ✨ Features
 
@@ -17,22 +17,20 @@ Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a 
 
 * **Frontend**: Vue 3, TypeScript, TailwindCSS v4
 * **Backend**: Go (Wails framework)
-* **Plugin**: Delphi (Pascal) for AIMP SDK interaction
+* **Plugin**: Modern C++ using AIMP SDK
 * **IPC**: Windows `WM_COPYDATA` for high-speed message passing
 
 ## 🚀 Installation & Usage
 
-### 1. Install the Plugin
-1.  Download the latest release.
-2.  Double-click `AILrc_plugin.aimppack` to install it via the AIMP Package Installer.
-3.  Ensure the plugin is enabled in AIMP Preferences > Plugins > **AILrc plugin**.
+### 1. Install
+1.  Download the latest `AILrc_vX.X.X.zip` from [Releases](https://github.com/Leovikii/AILrc-plugin/releases).
+2.  Extract the ZIP archive to find the `.aimppack` file.
+3.  Double-click `AILrc.aimppack` to install via the AIMP Package Installer.
+4.  Restart AIMP. The plugin will automatically launch AILrc.
 
-### 2. Setup the Renderer
-1.  Place `AILrc.exe` in the **root directory** of your AIMP installation (the same folder where `AIMP.exe` is located).
-    * *Example:* `C:\Program Files\AIMP\AILrc.exe`
-2.  Start AIMP. The plugin will automatically launch AILrc.
+> The `.aimppack` includes both the plugin DLL and the AILrc renderer — no manual file placement needed.
 
-### 3. Loading Lyrics
+### 2. Loading Lyrics
 Simply play a music file in AIMP. AILrc will automatically look for a matching lyric file in the same folder as the audio track.
 
 ## 🏗 Development
@@ -40,8 +38,16 @@ Simply play a music file in AIMP. AILrc will automatically look for a matching l
 ### Prerequisites
 * Go 1.20+
 * Node.js 18+
-* Delphi 10.3+ (only if modifying the `aimp_plugin`)
+* CMake 3.15+ and Visual Studio Build Tools (C++) (only if modifying the `plugin`)
 * Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+
+### Build Plugin (C++)
+The plugin is automatically built in the cloud via GitHub Actions on every push. To build it locally:
+```bash
+cd plugin
+cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
+cmake --build build --config Release
+```
 
 ### Build Renderer
 ```bash

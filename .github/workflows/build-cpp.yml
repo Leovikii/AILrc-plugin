@@ -1,0 +1,142 @@
+name: Build AILrc
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'plugin/**'
+      - 'AILrc/**'
+      - '.github/workflows/build-cpp.yml'
+  pull_request:
+    paths:
+      - 'plugin/**'
+      - 'AILrc/**'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [Win32, x64]
+        include:
+          - arch: Win32
+            goarch: 386
+          - arch: x64
+            goarch: amd64
+
+    steps:
+    - uses: actions/checkout@v6
+
+    # ── Build C++ Plugin ──
+    - name: Configure CMake
+      run: >
+        cmake -S plugin -B plugin/build
+        -G "Visual Studio 17 2022"
+        -A ${{ matrix.arch }}
+
+    - name: Build Plugin
+      run: cmake --build plugin/build --config Release
+
+    # ── Build AILrc (Go/Wails) ──
+    - name: Setup Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.24'
+        cache-dependency-path: AILrc/go.sum
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+        cache: 'npm'
+        cache-dependency-path: AILrc/frontend/package-lock.json
+
+    - name: Install Wails CLI
+      run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+    - name: Build AILrc App
+      working-directory: AILrc
+      env:
+        GOARCH: ${{ matrix.goarch }}
+      run: wails build -clean -platform windows/${{ matrix.goarch }}
+
+    - name: Upload Plugin DLL
+      uses: actions/upload-artifact@v7
+      with:
+        name: AILrc_plugin_${{ matrix.arch }}
+        path: plugin/build/Release/AILrc_plugin.dll
+
+    - name: Upload AILrc.exe
+      uses: actions/upload-artifact@v7
+      with:
+        name: AILrc_${{ matrix.arch }}
+        path: AILrc/build/bin/AILrc.exe
+
+  package:
+    needs: build
+    runs-on: windows-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v7
+      with:
+        path: artifacts
+
+    - name: Package .aimppack
+      shell: pwsh
+      run: |
+        $packDir = "AILrc_plugin"
+        New-Item -ItemType Directory -Path "$packDir/x64" -Force
+        
+        # Win32 binaries go to the root of the plugin folder
+        Copy-Item "artifacts/AILrc_plugin_Win32/AILrc_plugin.dll" "$packDir/"
+        Copy-Item "artifacts/AILrc_Win32/AILrc.exe" "$packDir/"
+        
+        # x64 binaries go to the x64 subfolder
+        Copy-Item "artifacts/AILrc_plugin_x64/AILrc_plugin.dll" "$packDir/x64/"
+        Copy-Item "artifacts/AILrc_x64/AILrc.exe" "$packDir/x64/"
+        
+        # Zip and rename to .aimppack
+        Compress-Archive -Path "$packDir" -DestinationPath "AILrc.zip"
+        Rename-Item "AILrc.zip" "AILrc.aimppack"
+
+    - name: Upload .aimppack
+      uses: actions/upload-artifact@v7
+      with:
+        name: AILrc.aimppack
+        path: AILrc.aimppack
+
+  release:
+    needs: package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download aimppack artifact
+      uses: actions/download-artifact@v7
+      with:
+        name: AILrc.aimppack
+
+    - name: Read Version
+      id: version
+      run: |
+        VERSION=$(grep '"version"' AILrc/frontend/package.json | head -1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Package to Release ZIP
+      run: |
+        zip AILrc_v${{ steps.version.outputs.version }}.zip AILrc.aimppack
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: AILrc v${{ steps.version.outputs.version }} (Plugin v${{ steps.version.outputs.version }})
+        body: ${{ github.event.head_commit.message }}
+        files: AILrc_v${{ steps.version.outputs.version }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

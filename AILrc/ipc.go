@@ -103,7 +103,7 @@ func handleMessage(jsonStr string) {
 	if baseMsg.Type == "lock" {
 		var ld LockData
 		if err := json.Unmarshal(baseMsg.Data, &ld); err == nil {
-			SetClickThrough(ld.Locked)
+			SetClickThrough(ld.Locked, nil)
 			if ipcContext != nil {
 				runtime.EventsEmit(ipcContext, "lock_state_change", ld.Locked)
 			}
@@ -148,7 +148,6 @@ func handleMessage(jsonStr string) {
 		if err := json.Unmarshal(baseMsg.Data, &pd); err == nil {
 			stateMutex.Lock()
 			globalState.Position = int(pd.Position * 1000)
-			globalState.State = 2
 			globalMusicInfo.IsActive = true
 			stateMutex.Unlock()
 
