@@ -23,9 +23,10 @@ Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a 
 ## 🚀 Installation & Usage
 
 ### 1. Install
-1.  Download the latest `.aimppack` from [Releases](https://github.com/Leovikii/AILrc-plugin/releases).
-2.  Double-click `AILrc_<arch>.aimppack` to install via the AIMP Package Installer.
-3.  Restart AIMP. The plugin will automatically launch AILrc.
+1.  Download the latest `AILrc_vX.X.X.zip` from [Releases](https://github.com/Leovikii/AILrc-plugin/releases).
+2.  Extract the ZIP archive to find the `.aimppack` file.
+3.  Double-click `AILrc.aimppack` to install via the AIMP Package Installer.
+4.  Restart AIMP. The plugin will automatically launch AILrc.
 
 > The `.aimppack` includes both the plugin DLL and the AILrc renderer — no manual file placement needed.
 

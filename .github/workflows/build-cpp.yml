@@ -2,6 +2,9 @@ name: Build AILrc
 
 on:
   push:
+    branches:
+      - dev
+      - main
     paths:
       - 'plugin/**'
       - 'AILrc/**'
@@ -103,3 +106,37 @@ jobs:
       with:
         name: AILrc.aimppack
         path: AILrc.aimppack
+
+  release:
+    needs: package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download aimppack artifact
+      uses: actions/download-artifact@v7
+      with:
+        name: AILrc.aimppack
+
+    - name: Read Version
+      id: version
+      run: |
+        VERSION=$(grep '"version"' AILrc/frontend/package.json | head -1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Package to Release ZIP
+      run: |
+        zip AILrc_v${{ steps.version.outputs.version }}.zip AILrc.aimppack
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: AILrc v${{ steps.version.outputs.version }} (Plugin v${{ steps.version.outputs.version }})
+        body: ${{ github.event.head_commit.message }}
+        files: AILrc_v${{ steps.version.outputs.version }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
