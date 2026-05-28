@@ -4,6 +4,8 @@ import type { AppConfig } from '../types';
 import CustomSlider from './CustomSlider.vue';
 import NumberInputRow from './NumberInputRow.vue';
 import packageJson from '../../package.json';
+import { useUpdate } from '../composables/useUpdate';
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 interface Props {
     config: AppConfig;
@@ -16,11 +18,21 @@ const emit = defineEmits<{
     close: [];
 }>();
 
+const { hasUpdate, releaseUrl } = useUpdate();
+
 const handleChange = (key: keyof AppConfig, value: any) => {
     if (typeof value === 'number') {
         value = parseFloat(value.toFixed(2));
     }
     emit('change', { ...props.config, [key]: value });
+};
+
+const handleUpdateClick = () => {
+    if (hasUpdate.value && releaseUrl.value) {
+        BrowserOpenURL(releaseUrl.value);
+    } else {
+        BrowserOpenURL('https://github.com/Leovikii/AILrc-plugin');
+    }
 };
 </script>
 
@@ -29,7 +41,17 @@ const handleChange = (key: keyof AppConfig, value: any) => {
         <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-3 shrink-0">
             <div class="flex items-center gap-2">
                 <h2 class="text-xs font-black tracking-[0.25em] text-pink-500 uppercase">Settings</h2>
-                <span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-1.5 py-0.5 rounded-sm tracking-widest shadow-sm">v{{ packageJson.version }}</span>
+                <button 
+                    @click="handleUpdateClick"
+                    :class="[
+                        'text-[10px] font-bold px-1.5 py-0.5 rounded-sm tracking-widest shadow-sm relative flex items-center gap-1.5 transition-all cursor-pointer',
+                        hasUpdate ? 'text-white bg-pink-600 hover:bg-pink-500' : 'text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20'
+                    ]"
+                >
+                    <span>v{{ packageJson.version }}</span>
+                    <span v-if="hasUpdate" class="text-[9px] font-black uppercase">Update</span>
+                    <div v-if="hasUpdate" class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-[1.5px] border-black shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse"></div>
+                </button>
             </div>
             <button @click="emit('close')" class="p-1.5 -mr-2 text-white/40 hover:text-white transition-colors" :style="{ '--wails-draggable': 'none' }">
                 <X :size="18" :stroke-width="2.5" />
