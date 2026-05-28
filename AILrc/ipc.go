@@ -77,8 +77,9 @@ func setupIPC(ctx context.Context) {
 			if cds.DwData == IPC_MAGIC_NUMBER {
 				jsonStr := ""
 				if cds.CbData > 0 {
+					slice := unsafe.Slice((*byte)(unsafe.Pointer(cds.LpData)), cds.CbData)
 					data := make([]byte, cds.CbData)
-					copy(data, (*[1 << 30]byte)(unsafe.Pointer(cds.LpData))[:cds.CbData])
+					copy(data, slice)
 					jsonStr = string(data)
 					if idx := strings.IndexByte(jsonStr, 0); idx >= 0 {
 						jsonStr = jsonStr[:idx]
