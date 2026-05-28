@@ -16,6 +16,7 @@ add_library(AILrc_plugin SHARED
     Plugin.cpp
     Controller.cpp
     Utils.cpp
+    aimp_sdk/apiTypes.cpp
 )
 
 # Include AIMP SDK
