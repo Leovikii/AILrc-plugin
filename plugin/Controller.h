@@ -6,6 +6,7 @@
 #include "apiMessages.h"
 #include "apiActions.h"
 #include "IUnknownImpl.h"
+#include <string>
 
 class PluginController;
 
