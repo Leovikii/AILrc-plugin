@@ -12,14 +12,12 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix:
         arch: [Win32, x64]
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Configure CMake
       run: >
@@ -31,7 +29,7 @@ jobs:
       run: cmake --build plugin/build --config Release
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: aimp_plugin_${{ matrix.arch }}
         path: plugin/build/Release/AILrc_plugin.dll
