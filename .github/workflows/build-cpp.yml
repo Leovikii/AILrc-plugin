@@ -121,11 +121,13 @@ jobs:
       with:
         name: AILrc.aimppack
 
-    - name: Read Version
+    - name: Read Versions
       id: version
       run: |
         VERSION=$(grep '"version"' AILrc/frontend/package.json | head -1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+        PLUGIN_VERSION=$(grep 'AIMP_PLUGIN_INFO_NAME' plugin/Plugin.cpp | grep -o 'v[0-9.]*' | sed 's/v//')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "plugin_version=$PLUGIN_VERSION" >> $GITHUB_OUTPUT
 
     - name: Package to Release ZIP
       run: |
@@ -135,7 +137,7 @@ jobs:
       uses: softprops/action-gh-release@v3
       with:
         tag_name: v${{ steps.version.outputs.version }}
-        name: AILrc v${{ steps.version.outputs.version }} (Plugin v${{ steps.version.outputs.version }})
+        name: AILrc v${{ steps.version.outputs.version }} (Plugin v${{ steps.version.outputs.plugin_version }})
         body: ${{ github.event.head_commit.message }}
         files: AILrc_v${{ steps.version.outputs.version }}.zip
       env:
