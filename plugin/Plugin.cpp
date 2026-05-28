@@ -92,7 +92,7 @@ public:
 
     virtual PWCHAR WINAPI InfoGet(int Index) override {
         switch (Index) {
-            case AIMP_PLUGIN_INFO_NAME:              return const_cast<PWCHAR>(L"AILrc plugin v3.2.0");
+            case AIMP_PLUGIN_INFO_NAME:              return const_cast<PWCHAR>(L"AILrc plugin v3.0.0");
             case AIMP_PLUGIN_INFO_AUTHOR:            return const_cast<PWCHAR>(L"LeoViki");
             case AIMP_PLUGIN_INFO_SHORT_DESCRIPTION: return const_cast<PWCHAR>(L"Syncs metadata and lyrics position to AILrc");
             default:                                 return nullptr;
