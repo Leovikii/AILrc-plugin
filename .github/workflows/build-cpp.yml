@@ -24,7 +24,7 @@ jobs:
             goarch: amd64
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     # ── Build C++ Plugin ──
     - name: Configure CMake
@@ -38,7 +38,7 @@ jobs:
 
     # ── Build AILrc (Go/Wails) ──
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: '1.24'
         cache-dependency-path: AILrc/go.sum

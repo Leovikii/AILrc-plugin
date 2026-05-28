@@ -137,12 +137,12 @@ void PluginController::LaunchApp() {
     if (!hwnd) {
         IAIMPString* pluginsPath = nullptr;
         if (FCore->GetPath(AIMP_CORE_PATH_PLUGINS, &pluginsPath) == S_OK && pluginsPath) {
-            std::wstring pluginDir = Utils::GetAIMPString(pluginsPath) + L"AILrc_plugin\\";
-#ifdef _WIN64
-            std::wstring appExe = pluginDir + L"x64\\AILrc.exe";
-#else
+            std::wstring basePath = Utils::GetAIMPString(pluginsPath);
+            if (!basePath.empty() && basePath.back() != L'\\') {
+                basePath += L'\\';
+            }
+            std::wstring pluginDir = basePath + L"AILrc_plugin\\";
             std::wstring appExe = pluginDir + L"AILrc.exe";
-#endif
             pluginsPath->Release();
 
             ShellExecuteW(nullptr, L"open", appExe.c_str(), nullptr, pluginDir.c_str(), SW_SHOWNORMAL);
