@@ -25,23 +25,15 @@ AILrc/frontend/.vite/
 # AILrc/wailsjs/
 .claude
 
-# --- AIMP Plugin (Delphi) ---
-# Delphi history and recovery
-aimp_plugin/__history/
-aimp_plugin/__recovery/
+# --- AIMP Plugin (C++) ---
+# CMake build directories
+build/
+plugin/build/
+plugin/out/
+.vs/
+out/
+*.user
 
-# Output directories (Avoid committing binaries)
-aimp_plugin/Win32/
-aimp_plugin/Win64/
-
-# Delphi build files
-*.dcu
-*.rsm
-*.identcache
-*.local
-*.stat
-*.tvsconfig
-*.dsk
 
 # --- Binaries & Packages ---
 # Ignore all executables and dlls to prevent repo bloat

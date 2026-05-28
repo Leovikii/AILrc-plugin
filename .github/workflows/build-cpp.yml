@@ -1,0 +1,35 @@
+name: Build AIMP Plugin (C++)
+
+on:
+  push:
+    paths:
+      - 'plugin/**'
+      - '.github/workflows/build-cpp.yml'
+  pull_request:
+    paths:
+      - 'plugin/**'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [Win32, x64]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure CMake
+      run: >
+        cmake -S plugin -B plugin/build 
+        -G "Visual Studio 17 2022" 
+        -A ${{ matrix.arch }}
+
+    - name: Build
+      run: cmake --build plugin/build --config Release
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: aimp_plugin_${{ matrix.arch }}
+        path: plugin/build/Release/AILrc_plugin.dll
