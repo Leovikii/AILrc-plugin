@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	GWL_EXSTYLE       = 0xFFFFFFEC
+	GWL_EXSTYLE       = -20
 	WS_EX_LAYERED     = 0x80000
 	WS_EX_TRANSPARENT = 0x20
 	LWA_ALPHA         = 0x2

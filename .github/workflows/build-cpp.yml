@@ -44,9 +44,9 @@ jobs:
         cache-dependency-path: AILrc/go.sum
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '22'
+        node-version: '24'
         cache: 'npm'
         cache-dependency-path: AILrc/frontend/package-lock.json
 
@@ -58,23 +58,6 @@ jobs:
       env:
         GOARCH: ${{ matrix.goarch }}
       run: wails build -clean -platform windows/${{ matrix.goarch }}
-
-    # ── Package .aimppack ──
-    - name: Package .aimppack
-      shell: pwsh
-      run: |
-        $packDir = "pack/AILrc"
-        New-Item -ItemType Directory -Path $packDir -Force
-
-        # Copy plugin DLL
-        Copy-Item "plugin/build/Release/AILrc_plugin.dll" "$packDir/"
-
-        # Copy AILrc.exe
-        Copy-Item "AILrc/build/bin/AILrc.exe" "$packDir/"
-
-        # Create .aimppack (zip with renamed extension)
-        Compress-Archive -Path "pack/AILrc" -DestinationPath "pack/AILrc_${{ matrix.arch }}.zip"
-        Move-Item "pack/AILrc_${{ matrix.arch }}.zip" "pack/AILrc_${{ matrix.arch }}.aimppack"
 
     - name: Upload Plugin DLL
       uses: actions/upload-artifact@v7
@@ -88,8 +71,35 @@ jobs:
         name: AILrc_${{ matrix.arch }}
         path: AILrc/build/bin/AILrc.exe
 
+  package:
+    needs: build
+    runs-on: windows-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v7
+      with:
+        path: artifacts
+
+    - name: Package .aimppack
+      shell: pwsh
+      run: |
+        $packDir = "AILrc_plugin"
+        New-Item -ItemType Directory -Path "$packDir/x64" -Force
+        
+        # Win32 binaries go to the root of the plugin folder
+        Copy-Item "artifacts/AILrc_plugin_Win32/AILrc_plugin.dll" "$packDir/"
+        Copy-Item "artifacts/AILrc_Win32/AILrc.exe" "$packDir/"
+        
+        # x64 binaries go to the x64 subfolder
+        Copy-Item "artifacts/AILrc_plugin_x64/AILrc_plugin.dll" "$packDir/x64/"
+        Copy-Item "artifacts/AILrc_x64/AILrc.exe" "$packDir/x64/"
+        
+        # Zip and rename to .aimppack
+        Compress-Archive -Path "$packDir" -DestinationPath "AILrc.zip"
+        Rename-Item "AILrc.zip" "AILrc.aimppack"
+
     - name: Upload .aimppack
       uses: actions/upload-artifact@v7
       with:
-        name: AILrc_${{ matrix.arch }}.aimppack
-        path: pack/AILrc_${{ matrix.arch }}.aimppack
+        name: AILrc.aimppack
+        path: AILrc.aimppack
