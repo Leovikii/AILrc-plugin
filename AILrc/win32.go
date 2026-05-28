@@ -83,17 +83,21 @@ func screenToClient(hwnd uintptr, pt *POINT) bool {
 	return ret != 0
 }
 
+var aimpClassNamePtr *uint16
+
+func init() {
+	aimpClassNamePtr, _ = syscall.UTF16PtrFromString("AIMP2_RemoteInfo")
+}
+
 func sendAimpCommand(cmd uintptr) {
-	className, _ := syscall.UTF16PtrFromString("AIMP2_RemoteInfo")
-	hwnd, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(className)), 0)
+	hwnd, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(aimpClassNamePtr)), 0)
 	if hwnd != 0 {
 		procSendMessageW.Call(hwnd, uintptr(WM_AIMP_COMMAND), cmd, 0)
 	}
 }
 
 func getAimpState() int {
-	className, _ := syscall.UTF16PtrFromString("AIMP2_RemoteInfo")
-	hwnd, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(className)), 0)
+	hwnd, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(aimpClassNamePtr)), 0)
 	if hwnd != 0 {
 		ret, _, _ := procSendMessageW.Call(hwnd, uintptr(WM_AIMP_PROPERTY), uintptr(AIMP_RA_PROPERTY_PLAYER_STATE|AIMP_RA_PROPVALUE_GET), 0)
 		return int(ret)

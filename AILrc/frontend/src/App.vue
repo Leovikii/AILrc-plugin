@@ -71,15 +71,24 @@ const calculateTargetHeight = (contentHeight: number) => {
     return Math.ceil(Math.max(contentHeight + padding, standardHeight.value));
 };
 
+const lastKnownLyricHeight = ref(0);
+
 const performResize = () => {
     if (isSettingsOpen.value) {
         ResizeWindow(400, 520);
         return;
     }
 
-    if (!lyricRef.value?.lyricRef) return;
+    let targetH = standardHeight.value;
+    
+    if (isTransitioning.value && lastKnownLyricHeight.value > 0) {
+        // Use cached height to prevent false measurements when the DOM is squeezed in the narrow 400px window
+        targetH = lastKnownLyricHeight.value;
+    } else if (lyricRef.value?.lyricRef) {
+        targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
+        lastKnownLyricHeight.value = targetH; // Cache the healthy height
+    }
 
-    const targetH = calculateTargetHeight(lyricRef.value.lyricRef.offsetHeight);
     const targetW = config.value.windowWidth || window.innerWidth;
     ResizeWindow(Math.ceil(targetW), Math.ceil(targetH));
 };
@@ -146,14 +155,34 @@ watch(
     { flush: 'post' }
 );
 
+const isTransitioning = ref(false);
+
 const handleOpenSettings = () => {
     setConfig({ ...config.value, windowWidth: window.innerWidth });
-    isSettingsOpen.value = true;
+    isTransitioning.value = true;
+    setTimeout(async () => {
+        isSettingsOpen.value = true;
+        await nextTick();
+        performResize();
+        setTimeout(() => {
+            isTransitioning.value = false;
+        }, 100);
+    }, 150);
 };
 
 const handleCloseSettings = () => {
     saveConfig(config.value);
-    isSettingsOpen.value = false;
+    isTransitioning.value = true;
+    setTimeout(async () => {
+        isSettingsOpen.value = false;
+        await nextTick();
+        performResize();
+        setTimeout(() => {
+            isTransitioning.value = false;
+            // Schedule a final healthy resize after the window is fully expanded and text unwraps
+            scheduleResize();
+        }, 100);
+    }, 150);
 };
 
 const currentBgOpacity = computed(() => 
@@ -170,45 +199,52 @@ const currentBgOpacity = computed(() =>
         }"
     >
         <div :class="['flex-1 flex flex-col w-full h-full opacity-100 anim-fade']">
-            <SettingsPanel 
-                v-if="isSettingsOpen"
-                :config="config"
-                @change="setConfig"
-                @close="handleCloseSettings"
-            />
-            <template v-else>
-                <ControlBar
-                    v-if="!isLocked"
-                    v-memo="[musicInfo?.FileName, isLocked, playerState?.State]"
-                    :file-name="musicInfo?.FileName"
-                    :state="playerState?.State"
-                    @open-settings="handleOpenSettings"
-                    @lock="isLocked = true"
-                    @close="QuitApp"
+            <div 
+                :class="[
+                    'w-full h-full flex flex-col relative transition-all duration-150 ease-out',
+                    isTransitioning ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'
+                ]"
+            >
+                <SettingsPanel 
+                    v-if="isSettingsOpen"
+                    :config="config"
+                    @change="setConfig"
+                    @close="handleCloseSettings"
                 />
-                <div v-else class="absolute top-0 right-0 p-2 z-50 group pointer-events-auto">
-                    <div
-                        ref="unlockBtnRef"
-                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out flex items-center"
-                    >
-                        <ControlButton
-                            @click="isLocked = false"
-                            title="Unlock Window"
+                <div v-else class="w-full h-full flex flex-col relative">
+                    <ControlBar
+                        v-if="!isLocked"
+                        v-memo="[musicInfo?.FileName, isLocked, playerState?.State]"
+                        :file-name="musicInfo?.FileName"
+                        :state="playerState?.State"
+                        @open-settings="handleOpenSettings"
+                        @lock="isLocked = true"
+                        @close="QuitApp"
+                    />
+                    <div v-else class="absolute top-0 right-0 p-2 z-50 group pointer-events-auto">
+                        <div
+                            ref="unlockBtnRef"
+                            class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out flex items-center"
                         >
-                            <Unlock :size="16" :stroke-width="2.5" />
-                        </ControlButton>
+                            <ControlButton
+                                @click="isLocked = false"
+                                title="Unlock Window"
+                            >
+                                <Unlock :size="16" :stroke-width="2.5" />
+                            </ControlButton>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center w-full min-h-0 px-4">
+                        <LyricRenderer
+                            ref="lyricRef"
+                            v-memo="[mainText, subText, config.fontSize, config.fontColor, config.strokeColor, config.textOpacity]"
+                            :main-text="mainText"
+                            :sub-text="subText"
+                            :config="config"
+                        />
                     </div>
                 </div>
-                <div class="flex-1 flex items-center justify-center w-full min-h-0 px-4">
-                    <LyricRenderer
-                        ref="lyricRef"
-                        v-memo="[mainText, subText, config.fontSize, config.fontColor, config.strokeColor, config.textOpacity]"
-                        :main-text="mainText"
-                        :sub-text="subText"
-                        :config="config"
-                    />
-                </div>
-            </template>
+            </div>
         </div>
     </div>
 </template>

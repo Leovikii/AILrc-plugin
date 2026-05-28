@@ -12,7 +12,7 @@ const emit = defineEmits<{ click: [] }>();
     <button
         @click="emit('click')"
         :class="[
-            'p-1.5 rounded-md transition-colors cursor-pointer flex items-center justify-center',
+            'w-7 h-7 rounded-md transition-colors cursor-pointer flex items-center justify-center',
             isDanger 
                 ? 'text-white/60 hover:text-red-400 hover:bg-red-500/20' 
                 : 'text-white/60 hover:text-white hover:bg-white/10'
