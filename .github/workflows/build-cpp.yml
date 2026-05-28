@@ -1,13 +1,15 @@
-name: Build AIMP Plugin (C++)
+name: Build AILrc
 
 on:
   push:
     paths:
       - 'plugin/**'
+      - 'AILrc/**'
       - '.github/workflows/build-cpp.yml'
   pull_request:
     paths:
       - 'plugin/**'
+      - 'AILrc/**'
 
 jobs:
   build:
@@ -15,21 +17,79 @@ jobs:
     strategy:
       matrix:
         arch: [Win32, x64]
-    
+        include:
+          - arch: Win32
+            goarch: 386
+          - arch: x64
+            goarch: amd64
+
     steps:
     - uses: actions/checkout@v5
 
+    # ── Build C++ Plugin ──
     - name: Configure CMake
       run: >
-        cmake -S plugin -B plugin/build 
-        -G "Visual Studio 17 2022" 
+        cmake -S plugin -B plugin/build
+        -G "Visual Studio 17 2022"
         -A ${{ matrix.arch }}
 
-    - name: Build
+    - name: Build Plugin
       run: cmake --build plugin/build --config Release
 
-    - name: Upload Artifact
+    # ── Build AILrc (Go/Wails) ──
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+        cache-dependency-path: AILrc/go.sum
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: AILrc/frontend/package-lock.json
+
+    - name: Install Wails CLI
+      run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+    - name: Build AILrc App
+      working-directory: AILrc
+      env:
+        GOARCH: ${{ matrix.goarch }}
+      run: wails build -clean -platform windows/${{ matrix.goarch }}
+
+    # ── Package .aimppack ──
+    - name: Package .aimppack
+      shell: pwsh
+      run: |
+        $packDir = "pack/AILrc"
+        New-Item -ItemType Directory -Path $packDir -Force
+
+        # Copy plugin DLL
+        Copy-Item "plugin/build/Release/AILrc_plugin.dll" "$packDir/"
+
+        # Copy AILrc.exe
+        Copy-Item "AILrc/build/bin/AILrc.exe" "$packDir/"
+
+        # Create .aimppack (zip with renamed extension)
+        Compress-Archive -Path "pack/AILrc" -DestinationPath "pack/AILrc_${{ matrix.arch }}.zip"
+        Move-Item "pack/AILrc_${{ matrix.arch }}.zip" "pack/AILrc_${{ matrix.arch }}.aimppack"
+
+    - name: Upload Plugin DLL
       uses: actions/upload-artifact@v7
       with:
-        name: aimp_plugin_${{ matrix.arch }}
+        name: AILrc_plugin_${{ matrix.arch }}
         path: plugin/build/Release/AILrc_plugin.dll
+
+    - name: Upload AILrc.exe
+      uses: actions/upload-artifact@v7
+      with:
+        name: AILrc_${{ matrix.arch }}
+        path: AILrc/build/bin/AILrc.exe
+
+    - name: Upload .aimppack
+      uses: actions/upload-artifact@v7
+      with:
+        name: AILrc_${{ matrix.arch }}.aimppack
+        path: pack/AILrc_${{ matrix.arch }}.aimppack

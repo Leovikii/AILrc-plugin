@@ -135,18 +135,13 @@ void PluginController::HandleMenuAction(IAIMPMenuItem* menuItem) {
 void PluginController::LaunchApp() {
     HWND hwnd = FindWindowW(nullptr, Utils::TARGET_WINDOW_TITLE);
     if (!hwnd) {
-        wchar_t exePath[MAX_PATH];
-        GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-        std::wstring pathStr = exePath;
-        size_t pos = pathStr.find_last_of(L"\\/");
-        if (pos != std::wstring::npos) {
-            std::wstring dirStr = pathStr.substr(0, pos + 1);
-            std::wstring appExe = dirStr + L"AILrc.exe";
-            
-            // In AIMP plugins, the exe path might actually be the AIMP.exe.
-            // Wait, in Delphi `ExtractFilePath(ParamStr(0))` gives AIMP.exe path! 
-            // So AILrc.exe is supposed to be next to AIMP.exe.
-            ShellExecuteW(nullptr, L"open", appExe.c_str(), nullptr, dirStr.c_str(), SW_SHOWNORMAL);
+        IAIMPString* pluginsPath = nullptr;
+        if (FCore->GetPath(AIMP_CORE_PATH_PLUGINS, &pluginsPath) == S_OK && pluginsPath) {
+            std::wstring pluginDir = Utils::GetAIMPString(pluginsPath) + L"AILrc\\";
+            std::wstring appExe = pluginDir + L"AILrc.exe";
+            pluginsPath->Release();
+
+            ShellExecuteW(nullptr, L"open", appExe.c_str(), nullptr, pluginDir.c_str(), SW_SHOWNORMAL);
             SyncInitialData();
         }
     }

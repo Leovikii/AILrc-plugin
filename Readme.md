@@ -22,17 +22,14 @@ Unlike traditional lyric plugins that rely on inefficient polling, AILrc uses a 
 
 ## 🚀 Installation & Usage
 
-### 1. Install the Plugin
-1.  Download the latest release.
-2.  Double-click `AILrc_plugin.aimppack` to install it via the AIMP Package Installer.
-3.  Ensure the plugin is enabled in AIMP Preferences > Plugins > **AILrc plugin**.
+### 1. Install
+1.  Download the latest `.aimppack` from [Releases](https://github.com/Leovikii/AILrc-plugin/releases).
+2.  Double-click `AILrc_<arch>.aimppack` to install via the AIMP Package Installer.
+3.  Restart AIMP. The plugin will automatically launch AILrc.
 
-### 2. Setup the Renderer
-1.  Place `AILrc.exe` in the **root directory** of your AIMP installation (the same folder where `AIMP.exe` is located).
-    * *Example:* `C:\Program Files\AIMP\AILrc.exe`
-2.  Start AIMP. The plugin will automatically launch AILrc.
+> The `.aimppack` includes both the plugin DLL and the AILrc renderer — no manual file placement needed.
 
-### 3. Loading Lyrics
+### 2. Loading Lyrics
 Simply play a music file in AIMP. AILrc will automatically look for a matching lyric file in the same folder as the audio track.
 
 ## 🏗 Development
