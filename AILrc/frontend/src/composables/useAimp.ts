@@ -29,15 +29,12 @@ export function useAimp() {
             }
         });
 
-        const cancelState = EventsOn("state", async (data: any) => {
-            if (typeof data === 'object' && data.state !== undefined) {
-                if (playerState.value) {
-                    playerState.value.State = data.state;
-                } else {
-                    playerState.value = { Position: 0, State: data.state };
-                }
+        const cancelState = EventsOn("state", async () => {
+            const actual = await FetchPlayerState();
+            if (playerState.value) {
+                playerState.value.State = actual.State;
             } else {
-                playerState.value = await FetchPlayerState();
+                playerState.value = actual;
             }
         });
 

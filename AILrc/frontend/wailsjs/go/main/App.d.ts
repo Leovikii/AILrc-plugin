@@ -10,10 +10,16 @@ export function FetchPlayerState():Promise<main.PlayerState>;
 
 export function GetConfig():Promise<main.AppConfig>;
 
+export function Next():Promise<void>;
+
+export function PlayPause():Promise<void>;
+
+export function Previous():Promise<void>;
+
 export function QuitApp():Promise<void>;
 
 export function ResizeWindow(arg1:number,arg2:number):Promise<void>;
 
 export function SaveConfig(arg1:main.AppConfig):Promise<void>;
 
-export function SetWindowClickThrough(arg1:boolean):Promise<void>;
+export function SetWindowClickThrough(arg1:boolean,arg2:main.DOMRect):Promise<void>;
