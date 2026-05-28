@@ -133,7 +133,7 @@ public:
         return S_OK;
     }
 
-    virtual void WINAPI Finalize() override {
+    virtual HRESULT WINAPI Finalize() override {
         if (FController) {
             FController->CloseApp();
             delete FController;
@@ -152,6 +152,8 @@ public:
             FCore->Release();
             FCore = nullptr;
         }
+
+        return S_OK;
     }
 
     virtual void WINAPI SystemNotification(int NotifyID, IUnknown* Data) override {
